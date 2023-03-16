@@ -1,62 +1,41 @@
 import pytest
-from pathlib import Path
-from worker import capp
-import celery.contrib.testing.tasks
+from celery import Celery
+from pytest_postgresql import factories as pg_factories
 
 
-@pytest.fixture(scope='session')
-def celery_config(tmpdir_factory):
-    tmpdir = Path(tmpdir_factory.getbasetemp())
+def prep_database(host, port, user, password, dbname):
+    temp_celery_app = Celery(
+        "tasks",
+        broker="memory://",
+        backend=f"db+postgresql+psycopg://{user}:{password}@{host}:{port}/{dbname}",
+    )
 
-    broker_folder = tmpdir / '__broker'
-    out = broker_folder / 'out'
-    processed = broker_folder / 'processed'
+    # call it once to trigger the creation of the tables in the tplt database
+    temp_celery_app.backend.ResultSession()
 
-    if not broker_folder.is_dir():
-        broker_folder.mkdir()
-        out.mkdir()
-        processed.mkdir()
+
+postgresql_docker = pg_factories.postgresql_noproc(load=[prep_database])
+postgresql = pg_factories.postgresql("postgresql_docker")
+
+
+@pytest.fixture(scope="session")
+def celery_config(postgresql_docker):
     return {
-
-        'broker_url': 'filesystem://',
-        'broker_transport_options': {
-            'data_folder_in': f'{out.as_posix()}',
-            'data_folder_out': f'{out.as_posix()}',
-            'data_folder_processed': f'{processed.as_posix()}'
-        },
-
-        'result_persistent': False,
-        'task_serializer': 'json',
-        'result_serializer': 'json',
-        'accept_content': ['json'],
-        'result_backend': 'cache',
-        'cache_backend': 'memory'
+        "result_extended": True,
+        "result_backend": "db+postgresql+psycopg://postgres:postgres@localhost:5432/celery-test",
+        "broker_url": "memory://",
     }
 
 
-@pytest.fixture(scope='session')
-def celery_enable_logging():
-    return True
+@pytest.fixture
+def celery_app(request, celery_app, postgresql):
+    celery_app.conf.update(result_extended=True)
+    assert len(celery_app.tasks) == 12
+    yield celery_app
 
 
-@pytest.fixture(scope='session')
-def celery_includes():
-    return [
-        'celery.contrib.testing.tasks'
-    ]
+@pytest.fixture
+def task_model():
+    from celery.backends.database import models
 
-
-@pytest.fixture(scope='session')
-def celery_worker_pool():
-    return 'solo'
-
-
-@pytest.fixture(scope='session')
-def celery_app(request,
-               celery_config,
-               celery_parameters,
-               celery_enable_logging,
-               use_celery_app_trap):
-
-    capp.conf.update(celery_config)
-    return capp
+    return models.TaskExtended

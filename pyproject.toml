@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "celery-startup-project"
+version = "0.1.0"
+description = "A study about testing a celery application with pytest and postgresql"
+authors = ["vesnikos <nick.ves@glasgow.ac.uk>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+celery = {extras = ["pytest"], version = "^5.2.7"}
+pytest = "^7.2.2"
+poethepoet = "^0.18.1"
+sqlalchemy = "^2.0.6"
+psycopg = "^3.1.8"
+pytest-postgresql = "^4.1.1"
+mypy = "^1.1.1"
+celery-types = "^0.14.0"
+black = "^23.1.0"
+isort = "^5.12.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poe.tasks]
+test = "pytest"
+format = [
+    {cmd = "isort src tests"},
+    {cmd = "black src tests"},
+]
+
+[tool.pytest.ini_options]
+pythonpath  = "src"
+postgresql_user = "postgres"
+postgresql_password = "postgres"
+postgresql_dbname = 'celery-test'

@@ -1,8 +1,13 @@
+from .capp import capp
 import random
-from worker import capp
 
 
-@capp.task(bind=True, name='long_running_task')
+@capp.task
+def my_super_task(x, y):
+    return x + y
+
+
+@capp.task(bind=True)
 def long_running_task(self) -> float:
     n = 100000
     total = 0
