@@ -5,16 +5,16 @@ if TYPE_CHECKING:
     from celery.result import AsyncResult
     from sqlalchemy.orm import Session
 
-from myapp import tasks  # noqa
+from my_celery_app import tasks  # noqa
 
 
 def test_tasks_are_there(celery_app: "Celery"):
     # 10 default tasks, plus 2 from myapp
-    assert len(celery_app.tasks) == 12
+    assert len(celery_app.tasks) == 14
 
 
 def test_add_task_add(celery_app: "Celery", celery_worker):
-    task: "AsyncResult" = celery_app.tasks["myapp.tasks.my_super_task"].apply_async(
+    task: "AsyncResult" = celery_app.tasks["my_celery_app.tasks.regular_tasks.my_super_task"].apply_async(
         (1, 2)
     )
     assert task.state == "PENDING"
@@ -28,7 +28,7 @@ def test_add_task_db_check(celery_app: "Celery", celery_worker, task_model):
     backend = celery_app.backend
     assert isinstance(backend, DatabaseBackend)
     session: "Session" = backend.ResultSession()
-    task: "AsyncResult" = celery_app.tasks["myapp.tasks.my_super_task"].apply_async(
+    task: "AsyncResult" = celery_app.tasks["my_celery_app.tasks.regular_tasks.my_super_task"].apply_async(
         (1, 2)
     )
     assert task.get() == 3
@@ -38,4 +38,4 @@ def test_add_task_db_check(celery_app: "Celery", celery_worker, task_model):
         db_result = session.query(task_model).filter_by(task_id=task.id).one()
         assert db_result.result == 3
         assert db_result.status == "SUCCESS"
-        assert db_result.name == "myapp.tasks.my_super_task"
+        assert db_result.name == "my_celery_app.tasks.regular_tasks.my_super_task"

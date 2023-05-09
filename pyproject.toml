@@ -1,9 +1,13 @@
 [tool.poetry]
-name = "celery-startup-project"
+name = "celery-startup-project" # how is handled with pip
 version = "0.1.0"
 description = "A study about testing a celery application with pytest and postgresql"
 authors = ["vesnikos <nick.ves@glasgow.ac.uk>"]
 readme = "README.md"
+packages = [
+    {include = "my_celery_app", from = "src"}, # my_celery_app is how import it
+]
+
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -17,6 +21,8 @@ mypy = "^1.1.1"
 celery-types = "^0.14.0"
 black = "^23.1.0"
 isort = "^5.12.0"
+celery-stubs = "^0.1.3"
+
 
 
 [build-system]
@@ -25,6 +31,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poe.tasks]
 test = "pytest"
+uninstall = "pip uninstall celery-startup-project"
 format = [
     {cmd = "isort src tests"},
     {cmd = "black src tests"},
